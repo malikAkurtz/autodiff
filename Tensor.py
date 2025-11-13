@@ -1,25 +1,44 @@
-import numpy as np
 from __future__ import annotations
+import numpy as np
 class Tensor:
-    requires_gradient = None
-    data = None
-    _parents = None    
-    _backward = None
-    grad = None
-    
     def __init__(self, data: np.array, requires_gradient: bool):
         self.data = data
         self.requires_gradient = requires_gradient
+        self._parents = []
+        self._backward = None
+        self.grad = None
     
     # Helper function to set the parents of this Tensor object
     # given its parent Tensors
     def set_parents(self, parents: list[Tensor]):
         self._parents = parents
         
-    def grad(self):
+    def backward(self):
+        # To start the recursive process
         self.grad = np.array([1])
         
+        topological_order = []
+        visited = set()
         
+        def postOrderDFS(tensor: Tensor):
+            if tensor is None or tensor in visited:
+                return
+            
+            visited.add(tensor)
+            
+            for parent_tensor in tensor._parents:
+                postOrderDFS(parent_tensor)
+                
+            topological_order.append(tensor)
+            
+        postOrderDFS(self)
+                
+        for tensor in reversed(topological_order):
+            if tensor._backward is not None:
+                tensor._backward()
+        
+        
+    
         
     # Assuming we will only be working with 1D Tensors at the moment
     # i.e. only working with scalars until everything is working

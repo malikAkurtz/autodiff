@@ -12,7 +12,7 @@ def main():
     input = np.array([1,2])
     # Extract parameters as Tensors, noting that we want the partial derivatives of these parameters
     x_1 = Tensor(input[0], requires_gradient=True)
-    x_2 = Tensor(input[1], require_gradient=True)
+    x_2 = Tensor(input[1], requires_gradient=True)
     
     # Call f with x_1 Tensor and x_2 Tensor to produce a new Tensor object, z
     # such that z.data contains the output of f
@@ -20,9 +20,10 @@ def main():
     z = f(x_1, x_2)
     
     # Get gradient of f with respect to inputs x_1, x_2
-    grad = z.grad()
+    z.backward()
     
-    print(grad)
+    print([x_1.grad, x_2.grad])
+    
     
     
     
