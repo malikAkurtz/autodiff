@@ -1,12 +1,16 @@
 from __future__ import annotations
 import numpy as np
 class Tensor:
+    global_id = 0
+    
     def __init__(self, data: np.array, requires_gradient: bool):
         self.data = data
         self.requires_gradient = requires_gradient
         self._parents = []
         self._backward = None
         self.grad = None
+        self._id = Tensor.global_id
+        Tensor.global_id += 1
     
     # Helper function to set the parents of this Tensor object
     # given its parent Tensors
@@ -32,7 +36,10 @@ class Tensor:
             topological_order.append(tensor)
             
         postOrderDFS(self)
-                
+        
+        for tensor in topological_order:
+            print(tensor._id)
+        
         for tensor in reversed(topological_order):
             if tensor._backward is not None:
                 tensor._backward()
@@ -196,6 +203,58 @@ class Tensor:
                 tensor.grad += (child.grad * np.exp(tensor.data))
             else:
                 tensor.grad = (child.grad * np.exp(tensor.data))
+                
+        child._backward = _backward
+        
+        return child
+    
+    def sin(tensor: Tensor):
+        # The raw tensor data, with sin applied
+        child_data = np.sin(tensor.data)
+
+        # If parent of output requires gradient, child requires gradient
+        if tensor.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        child.set_parents([tensor])
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if tensor.grad is not None:
+                tensor.grad += (child.grad * np.cos(tensor.data))
+            else:
+                tensor.grad = (child.grad * np.cos(tensor.data))
+                
+        child._backward = _backward
+        
+        return child
+    
+    def cos(tensor: Tensor):
+        # The raw tensor data, with cos applied
+        child_data = np.cos(tensor.data)
+
+        # If parent of output requires gradient, child requires gradient
+        if tensor.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        child.set_parents([tensor])
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if tensor.grad is not None:
+                tensor.grad += (child.grad * -np.sin(tensor.data))
+            else:
+                tensor.grad = (child.grad * -np.sin(tensor.data))
                 
         child._backward = _backward
         
