@@ -6,12 +6,26 @@ class Tensor:
     global_id = 0
     
     def __init__(self, data: np.array, requires_gradient: bool):
+        # The raw Tensor data, stored as an n-dimensional nd.array
         self.data = data
+        # The shape of the Tensor, i.e. the shape of the n-dimensional nd.array
         self.shape = data.shape
+        """
+        Boolean denoting whether we want to calculate the partial derivative
+        of the overall function with respect to this Tensor
+        e.g if we have input data Tensor, this is just data (not a parameter)
+        so we dont need to calculate the tensors gradient
+        """
         self.requires_gradient = requires_gradient
+        # The Tensors used to produce this Tensor
         self._parents = []
+        # The function that propogates this Tensor's 
+        # gradient to its parents
         self._backward = None
+        # The gradient of the overall function 
+        # with respect to this Tensor
         self.grad = None
+        # id used to identify the Tensor for debugging
         self._id = Tensor.global_id
         Tensor.global_id += 1
     
@@ -23,19 +37,36 @@ class Tensor:
     def backward(self):
         # To start the recursive process
         self.grad = np.ones_like(self.data)
-        
+        # Array to store the topological ordering of
+        # Tensors in the computational graph
         topological_order = []
+        """
+        Set used in Post-Order DFS algorithm
+        to store which nodes (Tensors) we have
+        already visited
+        """
         visited = set()
         
+        # Post-Order DFS helper function
         def postOrderDFS(tensor: Tensor):
+            # If the Tensor is None (at a leaf node)
+            # or we have already visited this node
+            # then return
             if tensor is None or tensor in visited:
                 return
             
+            # Otherwise visit the Tensor
             visited.add(tensor)
             
+            # For every parent of this Tensor
             for parent_tensor in tensor._parents:
+                # Run Post-Order DFS on it
                 postOrderDFS(parent_tensor)
-                
+            
+            # After running DFS on all parents, we have ensured that all
+            # dependencies of this tensor (the nodes that it depends on)
+            # appear earlier in the topological order.
+            # So now we can safely add this tensor itself.
             topological_order.append(tensor)
             
         postOrderDFS(self)
@@ -63,7 +94,7 @@ class Tensor:
             requires_gradient = False
 
         # The new child Tensor
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parents
         parents = [self, other_parent]
@@ -106,7 +137,7 @@ class Tensor:
             requires_gradient = False
 
         # The new child Tensor
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parents
         parents = [self, other_parent]
@@ -149,7 +180,7 @@ class Tensor:
         else:
             requires_gradient = False
 
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parents
         parents = [self, other_parent]
@@ -191,7 +222,7 @@ class Tensor:
         else:
             requires_gradient = False
 
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parents
         parents = [self, other_parent]
@@ -234,7 +265,7 @@ class Tensor:
         else:
             requires_gradient = False
 
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parents
         parents = [self, other_parent]
@@ -277,7 +308,7 @@ class Tensor:
         else:
             requires_gradient = False
         
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parent
         parents = [parent]
@@ -313,7 +344,7 @@ class Tensor:
         else:
             requires_gradient = False
         
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parent
         parents = [parent]
@@ -349,7 +380,7 @@ class Tensor:
         else:
             requires_gradient = False
         
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parent
         parents = [parent]
@@ -374,6 +405,80 @@ class Tensor:
         child._backward = _backward
         
         return child
+    
+    def sigmoid(parent: Tensor):
+        # The raw tensor data, with sigmoid applied
+        child_data = 1 / (1 + np.exp(-parent.data))
+
+        # If parent of output requires gradient, child requires gradient
+        if parent.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(child_data, requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        parents = [parent]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: sigmoid({parents[0]._id})")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+            
+            if parent.grad is not None:
+                # Eventually look into caching this value during the forward pass
+                parent.grad += child.grad * child.data * (1 - child.data)
+            else:
+                parent.grad = child.grad * child.data * (1 - child.data)
+                
+            if DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
+    
+    def ReLU(parent: Tensor):
+        # The raw tensor data, with ReLU applied
+        child_data = np.maximum(0, parent.data)
+
+        # If parent of output requires gradient, child requires gradient
+        if parent.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(child_data, requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        parents = [parent]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: ReLU({parents[0]._id})")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+                
+            grad_mask = (parent.data > 0).astype(float)
+            if parent.grad is not None:
+                parent.grad += child.grad * grad_mask
+            else:
+                parent.grad = child.grad * grad_mask
+                
+            if DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
         
     def transpose(self):
         # The raw tensor data, with cos applied
@@ -385,7 +490,7 @@ class Tensor:
         else:
             requires_gradient = False
         
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parent
         parents = [self]
@@ -421,7 +526,7 @@ class Tensor:
         else:
             requires_gradient = False
         
-        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        child = Tensor(child_data, requires_gradient=requires_gradient)
         
         # Setting the new child Tensor's parent
         parents = [self]

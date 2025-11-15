@@ -16,14 +16,17 @@ class NeuralNetwork:
                 print(f"Current output state:")
                 print(output.data)
                 print(f"Has shape: {output.data.shape}")
-                print(f"Layer {layer._id} weights matrix (Tensor {layer.weights_matrix._id}):")
-                print([layer.weights_matrix.data])
-                print(f"Has shape: {layer.weights_matrix.data.shape}")
+                print(f"Layer {layer._id} weights matrix (Tensor {layer.weights._id}):")
+                print([layer.weights.data])
+                print(f"Has shape: {layer.weights.data.shape}")
                 print(f"Layer {layer._id} bias vector (Tensor {layer.bias._id}):")
                 print(layer.bias.data)
                 print(f"Has shape: {layer.bias.data.shape}")
-            output @= Tensor.transpose(layer.weights_matrix)
+                print(f"Layer activation: {layer.activation}")
+            output @= Tensor.transpose(layer.weights)
             output += layer.bias
+            if layer.activation:
+                output = layer.activation(output)
         
         return output
     
