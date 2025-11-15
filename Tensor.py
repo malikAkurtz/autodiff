@@ -7,6 +7,7 @@ class Tensor:
     
     def __init__(self, data: np.array, requires_gradient: bool):
         self.data = data
+        self.shape = data.shape
         self.requires_gradient = requires_gradient
         self._parents = []
         self._backward = None
@@ -21,7 +22,7 @@ class Tensor:
         
     def backward(self):
         # To start the recursive process
-        self.grad = np.array([1])
+        self.grad = np.ones_like(self.data)
         
         topological_order = []
         visited = set()
@@ -171,6 +172,48 @@ class Tensor:
                 other_parent.grad += (self.data) * child.grad
             else:
                 other_parent.grad = (self.data) * child.grad
+                
+            if DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
+    
+    def __matmul__(self, other_parent: Tensor):
+        # Mat Multiplying two numpy arrays together to produce another numpy array
+        child_data = self.data @ other_parent.data
+        
+        # If either parent of the output Tensor requires a gradient
+        # Then this output Tensor will also require a gradient
+        if self.requires_gradient or other_parent.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+
+        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parents
+        parents = [self, other_parent]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: {parents[0]._id} @ {parents[1]._id}")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+            
+            if self.grad is not None:
+                self.grad += child.grad @ other_parent.data.T
+            else:
+                self.grad = child.grad @ other_parent.data.T
+                            
+            if other_parent.grad is not None:
+                other_parent.grad += self.data.T @ child.grad
+            else:
+                other_parent.grad = self.data.T @ child.grad
                 
             if DEBUG:
                 print(f"New parent gradients: {[p.grad for p in parents]}")
@@ -360,6 +403,42 @@ class Tensor:
                 self.grad += child.grad.T
             else:
                 self.grad = child.grad.T
+                
+            if DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
+    
+    def __getitem__(self, idx):
+        # The raw tensor data, indexed at idx
+        child_data = self.data[idx]
+
+        # If parent of output requires gradient, child requires gradient
+        if self.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(np.array(child_data), requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        parents = [self]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: {parents[0]._id}[{idx}]")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+            
+            if self.grad is None:
+                self.grad = np.zeros_like(self.data)
+
+            self.grad[idx] += child.grad
                 
             if DEBUG:
                 print(f"New parent gradients: {[p.grad for p in parents]}")
