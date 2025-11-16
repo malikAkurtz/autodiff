@@ -23,12 +23,11 @@ class NeuralNetwork:
                 print(layer.bias.data)
                 print(f"Has shape: {layer.bias.data.shape}")
                 print(f"Layer activation: {layer.activation}")
-            output @= Tensor.transpose(layer.weights)
-            output += layer.bias
+            output = output @ layer.weights
+            output = output + layer.bias
             if layer.activation:
                 output = layer.activation(output)
         
         return output
     
-    def add_layer(self, layer: Layer):
-        self.layers.append(layer)
+        

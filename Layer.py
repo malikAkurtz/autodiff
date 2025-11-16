@@ -14,3 +14,4 @@ class Layer:
         self.activation = activation
         self._id = Layer.global_id
         Layer.global_id += 1
+    

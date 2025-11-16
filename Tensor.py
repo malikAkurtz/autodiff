@@ -3,6 +3,8 @@ import numpy as np
 from debug import DEBUG
 
 class Tensor:
+    # TODO: Only propogate gradients to Tensors with requires_gradient=True
+    # TODO: store .grad as a Tensor s.t. we can compute higher order derivatives
     global_id = 0
     
     def __init__(self, data: np.array, requires_gradient: bool):
@@ -79,11 +81,18 @@ class Tensor:
         for tensor in reversed(topological_order):
             if tensor._backward is not None:
                 tensor._backward()
-        
+    
+    def as_Tensor(x):
+        if isinstance(x, Tensor):
+            return x
+        else:
+            return Tensor(np.array(x), requires_gradient=False)
         
     # Assuming we will only be working with 1D Tensors at the moment
     # i.e. only working with scalars until everything is working
     def __add__(self, other_parent: Tensor):
+        # Make sure any input is a Tensor
+        other_parent = Tensor.as_Tensor(other_parent)
         # Adding two numpy arrays together to produce another numpy array
         child_data = self.data + other_parent.data
         # If either parent of the output Tensor requires a gradient
@@ -127,6 +136,8 @@ class Tensor:
 
         
     def __sub__(self, other_parent: Tensor):
+        # Make sure any input is a Tensor
+        other_parent = Tensor.as_Tensor(other_parent)
         # Subtracting two numpy arrays together to produce another numpy array
         child_data = self.data - other_parent.data
         # If either parent of the output Tensor requires a gradient
@@ -170,6 +181,8 @@ class Tensor:
         
         
     def __mul__(self, other_parent: Tensor):
+        # Make sure any input is a Tensor
+        other_parent = Tensor.as_Tensor(other_parent)
         # Multiplying two numpy arrays together to produce another numpy array
         child_data = self.data * other_parent.data
         
@@ -212,6 +225,8 @@ class Tensor:
         return child
     
     def __matmul__(self, other_parent: Tensor):
+        # Make sure any input is a Tensor
+        other_parent = Tensor.as_Tensor(other_parent)
         # Mat Multiplying two numpy arrays together to produce another numpy array
         child_data = self.data @ other_parent.data
         
@@ -255,6 +270,8 @@ class Tensor:
         
         
     def __truediv__(self, other_parent: Tensor):
+        # Make sure any input is a Tensor
+        other_parent = Tensor.as_Tensor(other_parent)
         # Dividing two numpy arrays together to produce another numpy array
         child_data = self.data / other_parent.data
         
@@ -295,9 +312,55 @@ class Tensor:
         child._backward = _backward
         
         return child
+    
+    def __pow__(self, other_parent: Tensor):
+        # Make sure any input is a Tensor
+        other_parent = Tensor.as_Tensor(other_parent)
+        # exponentiating one numpy array by the parent to produce another numpy array
+        child_data = self.data ** other_parent.data
+        
+        # If either parent of the output Tensor requires a gradient
+        # Then this output Tensor will also require a gradient
+        if self.requires_gradient or other_parent.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+
+        child = Tensor(child_data, requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parents
+        parents = [self, other_parent]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: {parents[0]._id} ** {parents[1]._id}")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+            
+            if self.grad is not None:
+                self.grad += child.grad * other_parent.data * (self.data ** (other_parent.data -  1))
+            else:
+                self.grad = child.grad * other_parent.data * (self.data ** (other_parent.data -  1))
+                            
+            if other_parent.grad is not None:
+                other_parent.grad += child.grad * (self.data ** other_parent.data) * np.log(self.data)
+            else:
+                other_parent.grad = child.grad * (self.data ** other_parent.data) * np.log(self.data)
+                
+            if DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
         
         
     def exp(parent: Tensor):
+        # Make sure any input is a Tensor
+        parent = Tensor.as_Tensor(parent)
         # The raw tensor data, exponentiated
         child_data = np.exp(parent.data)
 
@@ -335,6 +398,8 @@ class Tensor:
         return child
     
     def sin(parent: Tensor):
+        # Make sure any input is a Tensor
+        parent = Tensor.as_Tensor(parent)
         # The raw tensor data, with sin applied
         child_data = np.sin(parent.data)
 
@@ -371,6 +436,8 @@ class Tensor:
         return child
     
     def cos(parent: Tensor):
+        # Make sure any input is a Tensor
+        parent = Tensor.as_Tensor(parent)
         # The raw tensor data, with cos applied
         child_data = np.cos(parent.data)
 
@@ -407,6 +474,8 @@ class Tensor:
         return child
     
     def sigmoid(parent: Tensor):
+        # Make sure any input is a Tensor
+        parent = Tensor.as_Tensor(parent)
         # The raw tensor data, with sigmoid applied
         child_data = 1 / (1 + np.exp(-parent.data))
 
@@ -444,6 +513,8 @@ class Tensor:
         return child
     
     def ReLU(parent: Tensor):
+        # Make sure any input is a Tensor
+        parent = Tensor.as_Tensor(parent)
         # The raw tensor data, with ReLU applied
         child_data = np.maximum(0, parent.data)
 
@@ -544,6 +615,42 @@ class Tensor:
                 self.grad = np.zeros_like(self.data)
 
             self.grad[idx] += child.grad
+                
+            if DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
+    
+    def sum(self):
+        # Raw numpy data summed up
+        child_data = self.data.sum()
+
+        # If parent of output requires gradient, child requires gradient
+        if self.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(child_data, requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        parents = [self]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: {parents[0]._id}.sum()")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+            
+            if self.grad is not None:
+                self.grad += np.ones_like(self.data) * child.grad
+            else:
+                self.grad = np.ones_like(self.data) * child.grad
                 
             if DEBUG:
                 print(f"New parent gradients: {[p.grad for p in parents]}")
