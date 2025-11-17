@@ -8,26 +8,18 @@ class NeuralNetwork:
     def __init__(self, layers: list[Layer] = None):
         self.layers = layers
     
-    def forward(self, batch_input: Tensor):
-        output = batch_input
+    def forward(self, batch_input_tensor: Tensor):
+        output_tensor = batch_input_tensor
         
         for layer in self.layers:
-            if DEBUG:
-                print(f"Current output state:")
-                print(output.data)
-                print(f"Has shape: {output.data.shape}")
-                print(f"Layer {layer._id} weights matrix (Tensor {layer.weights._id}):")
-                print([layer.weights.data])
-                print(f"Has shape: {layer.weights.data.shape}")
-                print(f"Layer {layer._id} bias vector (Tensor {layer.bias._id}):")
-                print(layer.bias.data)
-                print(f"Has shape: {layer.bias.data.shape}")
-                print(f"Layer activation: {layer.activation}")
-            output = output @ layer.weights
-            output = output + layer.bias
+            output_tensor = output_tensor @ layer.weights_tensor
+            output_tensor = output_tensor + layer.bias_tensor
             if layer.activation:
-                output = layer.activation(output)
+                output_tensor = layer.activation(output_tensor)
+            if DEBUG:
+                print(f"Layer {layer._id} output_tensor:")
+                print(output_tensor)
         
-        return output
+        return output_tensor
     
         

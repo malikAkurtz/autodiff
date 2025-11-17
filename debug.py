@@ -1,1 +1,2 @@
 DEBUG = True
+SUPER_DEBUG = False

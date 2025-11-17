@@ -6,48 +6,48 @@ from Node import Node
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-# f(x) = 2x + 1
-def f(x):
-    return 2*x + 1
-
-def cost_fn(y_preds: Tensor, y_true: Tensor):
-    n = len(y_preds.data)
-    return ((y_preds - y_true) ** 2) / n
+def cost_fn(y_preds_tensor: Tensor, y_true_tensor: Tensor):
+    num_elements = y_preds_tensor.shape[0]
+    return ((y_preds_tensor - y_true_tensor) ** 2).sum(axis=None) / num_elements
 
 
 def main():
     # Build data distribution
-    X = np.linspace(0, 50, 100)
-    y = f(X)
+    X = np.linspace(0, 10, 100)
+    X = X / 10
+    y = 2 * X + 5
     
     # Split data into test, train
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     
     # Build initial model
     L0_weights = np.array([
-        [0.1, 0.3, 0.5]
+        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     ])
-    L0_bias = np.array([1.0, 1.0, 1.0])
+    L0_bias = np.array([1.0, 1.0, 1.0, 0.1, 0.1, 0.1])
     
     L0_weights_tensor = Tensor(L0_weights, requires_gradient=True)
     L0_bias_tensor = Tensor(L0_bias, requires_gradient=True)
-    L0 = Layer(weights=L0_weights_tensor, bias=L0_bias_tensor, activation=Tensor.sigmoid)
+    L0 = Layer(weights_tensor=L0_weights_tensor, bias_tensor=L0_bias_tensor, activation=Tensor.ReLU)
     
     L1_weights = np.array([
-        [0.7], 
-        [0.8], 
-        [0.9]
+        [0.1], 
+        [0.1], 
+        [0.1],
+        [0.1],
+        [0.1],
+        [0.1]
     ])
     L1_bias = np.array([1.0])
     
     L1_weights_tensor = Tensor(L1_weights, requires_gradient=True)
     L1_bias_tensor = Tensor(L1_bias, requires_gradient=True)
-    L1 = Layer(weights=L1_weights_tensor, bias=L1_bias_tensor, activation=None)
+    L1 = Layer(weights_tensor=L1_weights_tensor, bias_tensor=L1_bias_tensor, activation=None)
     
     network = NeuralNetwork([L0, L1])
     
     # Run gradient descent
-    num_epochs = 100
+    num_epochs = 1000
     batch_size = 16 
     learning_rate = 0.01
     
@@ -57,41 +57,64 @@ def main():
     for _ in range(num_epochs):
         # For each batch
         epoch_avg_loss = 0
+        batch_counter = 0
         for x_batch, y_batch in batches(x_train, y_train, batch_size):
-            # Perform forward pass
-            x_batch_tensor = Tensor(x_batch.reshape(-1, 1), requires_gradient=False)
-            y_batch_tensor = Tensor(y_batch.reshape(-1, 1), requires_gradient=False)
-            batch_output = network.forward(x_batch_tensor)
+            # x_batch has shape (batch_size,)
+            # need to reshape to (batch_size, 1)
+            x_batch = x_batch.reshape(-1, 1)
+            # Cast to Tensor
+            x_batch_tensor = Tensor(x_batch, requires_gradient=False)
+            print("x_batch:")
+            print(x_batch_tensor)
+            
+            # y_batch has shape(batch_size,)
+            # need to reshape to (batch_size, 1)
+            y_batch = y_batch.reshape(-1, 1)
+            # Cast to Tensor
+            y_batch_tensor = Tensor(y_batch, requires_gradient=False)
+            print(f"y_batch:")
+            print(y_batch_tensor)
+            
+            # Perform forward pass to create computational graph
+            batch_output_tensor = network.forward(x_batch_tensor)
+            print(f"Batch output:")
+            print(batch_output_tensor)
             
             # Calculate cost
-            batch_loss = cost_fn(batch_output, y_batch_tensor).sum()
-            print(f"Epochs {_} Batch Loss: {batch_loss.data}")
+            batch_loss = cost_fn(batch_output_tensor, y_batch_tensor)
+            print(f"Epoch {_} Batch {batch_counter} Loss: {batch_loss.data}")
+            batch_counter += 1
             epoch_avg_loss += batch_loss.data
             
-            # Propogate gradient of loss wrt to parameters
+            # Perform backward pass
             batch_loss.backward()
             
             # Take GD step
             for layer in network.layers:
-                layer.weights.data -= learning_rate * layer.weights.grad
-                layer.bias.data    -= learning_rate * layer.bias.grad
+                layer.weights_tensor.data -= learning_rate * layer.weights_tensor.grad
+                layer.bias_tensor.data    -= learning_rate * layer.bias_tensor.grad
                 
             # Zero gradients
             for layer in network.layers:
-                layer.weights.grad = np.zeros_like(layer.weights.data)
-                layer.bias.grad = np.zeros_like(layer.bias.data)
+                layer.weights_tensor.grad = np.zeros_like(layer.weights_tensor.data)
+                layer.bias_tensor.grad = np.zeros_like(layer.bias_tensor.data)
                 
         epoch_avg_loss /= batch_size
         history["train_loss"].append(epoch_avg_loss)
         
     # Run inference on test data
+    # Reshape x_test, y_test
+    x_test = x_test.reshape(-1, 1)
+    y_test = y_test.reshape(-1, 1)
+    # Cast x_test, y_test to Tensors
+    x_test_tensor = Tensor(x_test, requires_gradient=False)
+    y_test_tensor = Tensor(y_test, requires_gradient=False)
+    y_preds_tensor = network.forward(x_test_tensor)
+    test_loss_tensor = cost_fn(y_preds_tensor, y_test_tensor)
     
-    y_preds = network.forward(x_test)
-    test_loss = cost_fn(y_preds, y_test)
-    
-    print(f"Loss on Test Data: {test_loss}")
+    print(f"Loss on Test Data: {test_loss_tensor.data}")
     plot_history(history, "Training Loss")
-    plot_data(x_test, y_test, y_preds)
+    plot_data(x_test_tensor.data, y_test_tensor.data, y_preds_tensor.data)
         
         
 def plot_history(history, plot_title='', save_path=None):

@@ -8,9 +8,9 @@ from debug import DEBUG
 
 class Layer:
     global_id = 0
-    def __init__(self, weights: Tensor, bias: Tensor, activation: callable):
-        self.weights = weights
-        self.bias = bias
+    def __init__(self, weights_tensor: Tensor, bias_tensor: Tensor, activation: callable):
+        self.weights_tensor = weights_tensor
+        self.bias_tensor = bias_tensor
         self.activation = activation
         self._id = Layer.global_id
         Layer.global_id += 1
