@@ -2,7 +2,6 @@ from __future__ import annotations
 import numpy as np
 
 from Tensor import Tensor
-from Node import Node
 from debug import DEBUG
 
 

@@ -1,7 +1,6 @@
 import numpy as np
 from Tensor import Tensor
 from Layer import Layer
-from Node import Node
 from debug import DEBUG
 
 class NeuralNetwork:
