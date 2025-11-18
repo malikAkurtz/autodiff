@@ -1,7 +1,0 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "autodiff"
-version = "0.1.0"

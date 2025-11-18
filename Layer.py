@@ -1,8 +1,8 @@
 from __future__ import annotations
 import numpy as np
 
-from autodiff import Tensor
-from utils import DEBUG
+from Tensor import Tensor
+from debug import DEBUG
 
 
 class Layer:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from utils.debug import DEBUG, SUPER_DEBUG
+from debug import DEBUG, SUPER_DEBUG
 
 class Tensor:
     # TODO: Only propogate gradients to Tensors with requires_gradient=True

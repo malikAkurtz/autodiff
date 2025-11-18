@@ -1,5 +1,5 @@
 import numpy as np
-from autodiff import Tensor
+from . import Tensor
 from autodiff import NeuralNetwork
 from autodiff import Layer
 from sklearn.model_selection import train_test_split

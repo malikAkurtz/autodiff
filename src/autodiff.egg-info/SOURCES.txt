@@ -1,6 +1,0 @@
-pyproject.toml
-setup.cfg
-src/autodiff.egg-info/PKG-INFO
-src/autodiff.egg-info/SOURCES.txt
-src/autodiff.egg-info/dependency_links.txt
-src/autodiff.egg-info/top_level.txt
