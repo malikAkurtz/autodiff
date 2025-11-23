@@ -649,41 +649,6 @@ class Tensor:
         
         return child
     
-    def __getitem__(self, idx):
-        # The raw tensor data, indexed at idx
-        child_data = self.data[idx]
-
-        # If parent of output requires gradient, child requires gradient
-        if self.requires_gradient:
-            requires_gradient = True
-        else:
-            requires_gradient = False
-        
-        child = Tensor(child_data, requires_gradient=requires_gradient)
-        
-        # Setting the new child Tensor's parent
-        parents = [self]
-        child.set_parents(parents)
-        
-        if DEBUG:
-            print(f"Child: {child._id} produced from: {parents[0]._id}[{idx}]")
-        
-        # Setting the child Tensor's backward prop rule
-        def _backward():
-            if DEBUG: 
-                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
-            
-            if self.grad is None:
-                self.grad = np.zeros_like(self.data)
-
-            self.grad[idx] += child.grad
-                
-            if SUPER_DEBUG:
-                print(f"New parent gradients: {[p.grad for p in parents]}")
-                                
-        child._backward = _backward
-        
-        return child
     
     def sum(self, axis: None | int | tuple):
         # Raw numpy data summed up

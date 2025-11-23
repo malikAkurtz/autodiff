@@ -1,7 +1,7 @@
 import numpy as np
 from . import Tensor
-from autodiff import NeuralNetwork
-from autodiff import Layer
+from NeuralNetwork import NeuralNetwork
+from Layer import Layer
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
