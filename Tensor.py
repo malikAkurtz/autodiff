@@ -3,8 +3,6 @@ import numpy as np
 from debug import DEBUG, SUPER_DEBUG
 
 class Tensor:
-    # TODO: Only propogate gradients to Tensors with requires_gradient=True
-    # TODO: store .grad as a Tensor s.t. we can compute higher order derivatives
     global_id = 0
     
     def __init__(self, data: np.array, requires_gradient: bool):
