@@ -1,9 +1,10 @@
 import numpy as np
-from . import Tensor
+from Tensor import Tensor
 from NeuralNetwork import NeuralNetwork
 from Layer import Layer
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from config import NUM_EPOCHS, BATCH_SIZE, LEARNING_RATE
 
 def cost_fn(y_preds_tensor: Tensor, y_true_tensor: Tensor):
     num_elements = y_preds_tensor.shape[0]
@@ -46,9 +47,9 @@ def main():
     network = NeuralNetwork([L0, L1])
     
     # Run gradient descent
-    num_epochs = 1000
-    batch_size = 16 
-    learning_rate = 0.01
+    num_epochs = NUM_EPOCHS
+    batch_size = BATCH_SIZE 
+    learning_rate = LEARNING_RATE
     
     history = {"train_loss": []}
     

@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 
 from Tensor import Tensor
-from debug import DEBUG
+from config import DEBUG
 
 
 class Layer:

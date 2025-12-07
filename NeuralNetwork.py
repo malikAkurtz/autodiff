@@ -1,7 +1,7 @@
 import numpy as np
 from Tensor import Tensor
 from Layer import Layer
-from debug import DEBUG
+from config import DEBUG
 
 class NeuralNetwork:
     def __init__(self, layers: list[Layer] = None):

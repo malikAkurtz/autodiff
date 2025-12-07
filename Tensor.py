@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from debug import DEBUG, SUPER_DEBUG
+from config import DEBUG, SUPER_DEBUG
 
 class Tensor:
     global_id = 0
@@ -603,6 +603,45 @@ class Tensor:
                 parent.grad += child.grad * grad_mask
             else:
                 parent.grad = child.grad * grad_mask
+                
+            if SUPER_DEBUG:
+                print(f"New parent gradients: {[p.grad for p in parents]}")
+                                
+        child._backward = _backward
+        
+        return child
+    
+    def tanh(parent: Tensor):
+        # Make sure any input is a Tensor
+        parent = Tensor.as_Tensor(parent)
+        # The raw tensor data, with tanh applied
+        child_data = np.tanh(parent.data)
+
+        # If parent of output requires gradient, child requires gradient
+        if parent.requires_gradient:
+            requires_gradient = True
+        else:
+            requires_gradient = False
+        
+        child = Tensor(child_data, requires_gradient=requires_gradient)
+        
+        # Setting the new child Tensor's parent
+        parents = [parent]
+        child.set_parents(parents)
+        
+        if DEBUG:
+            print(f"Child: {child._id} produced from: tanh({parents[0]._id})")
+        
+        # Setting the child Tensor's backward prop rule
+        def _backward():
+            if DEBUG: 
+                print(f"Propogating gradient from {child._id} to {[parent._id for parent in child._parents]} ")
+            
+            if parent.grad is not None:
+                # Eventually look into caching this value during the forward pass
+                parent.grad += child.grad * child.data**2
+            else:
+                parent.grad = child.grad * child.data**2
                 
             if SUPER_DEBUG:
                 print(f"New parent gradients: {[p.grad for p in parents]}")
